@@ -45,6 +45,11 @@ fun LoginScreen(onCancel: () -> Unit) {
     var captcha by remember { mutableStateOf(CaptchaUtils.generateCaptcha()) }
     var captchaInput by remember { mutableStateOf("") }
     var captchaError by remember { mutableStateOf("") }
+    var isCaptchaVerified by remember { mutableStateOf(false) }   // Step after captcha
+    var isOtpSent by remember { mutableStateOf(false) }           // OTP field enabled
+    var otp by remember { mutableStateOf("") }                    // OTP input field
+    var showOtpDialog by remember { mutableStateOf(false) }       // Popup
+
 
     Scaffold { padding ->
 
@@ -124,6 +129,43 @@ fun LoginScreen(onCancel: () -> Unit) {
                         },
                         error = captchaError
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            when {
+                                !ValidationUtils.isValidLoginInput(userInput) ->
+                                    error = "Invalid User ID / Email / Mobile"
+
+                                password.length < 6 ->
+                                    error = "Password too short"
+
+                                !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
+                                    captchaError = "Wrong captcha"
+
+                                else -> {
+                                    error = ""
+                                    captchaError = ""
+                                    isCaptchaVerified = true
+                                    isOtpSent = true       // enable OTP field
+                                    showOtpDialog = true    // show popup
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Verify & Send OTP")
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = otp,
+                        onValueChange = { otp = it },
+                        label = { Text("OTP") },
+                        enabled = isOtpSent,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                 }
             }
 
@@ -137,29 +179,46 @@ fun LoginScreen(onCancel: () -> Unit) {
 
             Spacer(Modifier.height(24.dp))
 
+//            Button(
+//                onClick = {
+//                    when {
+//                        !ValidationUtils.isValidLoginInput(userInput) ->
+//                            error = "Invalid User ID / Email / Mobile"
+//
+//                        password.length < 6 ->
+//                            error = "Password too short"
+//
+//                        !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
+//                            captchaError = "Wrong captcha"
+//
+//                        else -> {
+//                            error = ""
+//                            captchaError = ""
+//                            // TODO: Login API
+//                        }
+//                    }
+//                },
+//                modifier = Modifier.fillMaxWidth()
+//            ) {
+//                Text("Login")
+//            }
             Button(
                 onClick = {
-                    when {
-                        !ValidationUtils.isValidLoginInput(userInput) ->
-                            error = "Invalid User ID / Email / Mobile"
-
-                        password.length < 6 ->
-                            error = "Password too short"
-
-                        !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
-                            captchaError = "Wrong captcha"
-
-                        else -> {
-                            error = ""
-                            captchaError = ""
-                            // TODO: Login API
-                        }
+                    if (otp.length < 4) {
+                        error = "Invalid OTP"
+                    } else {
+                        error = ""
+                        // TODO: final login API
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                enabled = isOtpSent,   // enabled only after OTP is sent
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 Text("Login")
             }
+
 
             Spacer(Modifier.height(8.dp))
 
@@ -169,6 +228,18 @@ fun LoginScreen(onCancel: () -> Unit) {
             ) {
                 Text("Cancel")
             }
+        }
+        if (showOtpDialog) {
+            AlertDialog(
+                onDismissRequest = { showOtpDialog = false },
+                title = { Text("OTP Sent") },
+                text = { Text("An OTP has been sent to your registered email and mobile number.") },
+                confirmButton = {
+                    Button(onClick = { showOtpDialog = false }) {
+                        Text("OK")
+                    }
+                }
+            )
         }
     }
 }
