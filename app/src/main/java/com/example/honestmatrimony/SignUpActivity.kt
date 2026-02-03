@@ -51,6 +51,10 @@ fun SignUpScreen(
     var captcha by remember { mutableStateOf(CaptchaUtils.generateCaptcha()) }
     var captchaInput by remember { mutableStateOf("") }
     var captchaError by remember { mutableStateOf("") }
+    var isCaptchaVerified by remember { mutableStateOf(false) }
+    var isOtpSent by remember { mutableStateOf(false) }
+    var otp by remember { mutableStateOf("") }
+    var showOtpDialog by remember { mutableStateOf(false) }
 
     Scaffold { padding ->
 
@@ -150,6 +154,50 @@ fun SignUpScreen(
                         },
                         error = captchaError
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            when {
+                                !ValidationUtils.isValidEmail(email) ->
+                                    error = "Invalid email"
+
+                                !ValidationUtils.isValidMobile(mobile) ->
+                                    error = "Invalid mobile number"
+
+                                password != confirmPassword ->
+                                    error = "Passwords do not match"
+
+                                password.length < 6 ->
+                                    error = "Password too short"
+
+                                !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
+                                    captchaError = "Wrong captcha"
+
+                                else -> {
+                                    error = ""
+                                    captchaError = ""
+                                    isCaptchaVerified = true
+                                    isOtpSent = true
+                                    showOtpDialog = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Verify & Send OTP")
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = otp,
+                        onValueChange = { otp = it },
+                        label = { Text("OTP") },
+                        enabled = isOtpSent,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+
                 }
             }
 
@@ -161,36 +209,52 @@ fun SignUpScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
+
+//            Button(
+//                onClick = {
+//                    when {
+//                        !ValidationUtils.isValidEmail(email) ->
+//                            error = "Invalid email"
+//
+//                        !ValidationUtils.isValidMobile(mobile) ->
+//                            error = "Invalid mobile number"
+//
+//                        password.length < 6 ->
+//                            error = "Password too short"
+//
+//                        password != confirmPassword ->
+//                            error = "Passwords do not match"
+//
+//                        !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
+//                            captchaError = "Wrong captcha"
+//
+//                        else -> {
+//                            error = ""
+//                            captchaError = ""
+//                        }
+//                    }
+//                },
+//                modifier = Modifier.fillMaxWidth()
+//            ) {
+//                Text("Create Account")
+//            }
 
             Button(
                 onClick = {
-                    when {
-                        !ValidationUtils.isValidEmail(email) ->
-                            error = "Invalid email"
-
-                        !ValidationUtils.isValidMobile(mobile) ->
-                            error = "Invalid mobile number"
-
-                        password.length < 6 ->
-                            error = "Password too short"
-
-                        password != confirmPassword ->
-                            error = "Passwords do not match"
-
-                        !CaptchaUtils.verifyCaptcha(captcha, captchaInput) ->
-                            captchaError = "Wrong captcha"
-
-                        else -> {
-                            error = ""
-                            captchaError = ""
-                        }
+                    if (otp.length < 4) {
+                        error = "Invalid OTP"
+                    } else {
+                        error = ""
+                        // TODO: final signup API
                     }
                 },
+                enabled = isOtpSent,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Create Account")
             }
+
 
             Spacer(Modifier.height(8.dp))
 
@@ -201,5 +265,18 @@ fun SignUpScreen(
                 Text("Cancel")
             }
         }
+        if (showOtpDialog) {
+            AlertDialog(
+                onDismissRequest = { showOtpDialog = false },
+                title = { Text("OTP Sent") },
+                text = { Text("An OTP has been sent to your registered email and mobile number.") },
+                confirmButton = {
+                    Button(onClick = { showOtpDialog = false }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+
     }
 }
